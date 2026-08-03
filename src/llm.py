@@ -110,7 +110,17 @@ def gerar_json(
         json_mode=True,
     )
     try:
-        return json.loads(resposta.texto)
+        dado = json.loads(resposta.texto)
     except json.JSONDecodeError:
         log.error("LLM devolveu JSON invalido: %s", resposta.texto[:300])
         return {}
+
+    # Groq as vezes embrulha o objeto numa lista de 1 item.
+    if isinstance(dado, list):
+        dado = dado[0] if dado and isinstance(dado[0], dict) else {}
+
+    if not isinstance(dado, dict):
+        log.error("LLM devolveu JSON que nao e um objeto: %s", resposta.texto[:300])
+        return {}
+
+    return dado

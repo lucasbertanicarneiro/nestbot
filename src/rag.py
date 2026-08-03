@@ -40,6 +40,14 @@ def _montar_contexto(chunks: list[ChunkRecuperado]) -> str:
     return "\n\n".join(partes)
 
 
+def _montar_linha_fontes(chunks: list[ChunkRecuperado]) -> str:
+    """Monta 'Fontes: ...' deterministicamente a partir dos chunks usados,
+    em vez de confiar no LLM para citar -- ele nao obedece de forma
+    consistente e polui a resposta com citacao apos cada frase."""
+    nomes = list(dict.fromkeys(c.documento for c in chunks))
+    return "Fontes: " + ", ".join(nomes)
+
+
 def _classificar(pergunta: str) -> tuple[str, bool]:
     """Roteador barato. Falha aberta: erro no classificador nao bloqueia o RAG."""
     try:
@@ -137,7 +145,7 @@ def responder(pergunta: str, usuario_hash: str) -> ResultadoRAG:
             sistema=prompts.GERACAO_SISTEMA,
             usuario=prompts.GERACAO_USUARIO.format(contexto=contexto, pergunta=pergunta),
         )
-        resposta_texto = saida.texto.strip()
+        resposta_texto = saida.texto.strip() + "\n\n" + _montar_linha_fontes(chunks)
         rota = "rag"
     except Exception:
         log.exception("Falha na geracao.")
