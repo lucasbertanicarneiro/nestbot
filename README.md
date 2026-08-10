@@ -1,11 +1,12 @@
-# NestBot
+# Henri
 
 Assistente de Telegram que responde dúvidas de candidatos ao Programa de Trainee
 da Nestlé, com arquitetura RAG e um dashboard que mede a qualidade da própria
-recuperação.
+recuperação. O nome é uma homenagem a Henri Nestlé, fundador da marca.
 
-> Projeto pessoal, sem vínculo com a Nestlé. A base de conhecimento é montada a
-> partir de comunicados e páginas públicas.
+> Projeto pessoal, sem vínculo com a Nestlé. Bot não-oficial; o nome é uma
+> homenagem, não uma personificação da empresa ou de seu fundador. A base de
+> conhecimento é montada a partir de comunicados e páginas públicas.
 
 ---
 
@@ -163,6 +164,42 @@ mudou. Documento alterado é reindexado do zero.
 **Chunking contextual**: cada chunk carrega o breadcrumb `[documento > seção]` no
 cabeçalho, então continua fazendo sentido quando cai no prompt isolado dos vizinhos.
 
+### Importando de PDF ou print/imagem
+
+Hoje a base só é alimentada manualmente em `.md`. Pra PDF e print/imagem existe
+uma UI local (`src/import_web.py`) que extrai o conteúdo e monta o `.md` pra
+você — mas **com um gate de revisão humana**: nada é gravado em
+`data/knowledge/` sem você revisar e aprovar o texto extraído. Extração
+automática de imagem/PDF é onde mais se erra (texto cortado, tabela mal lida,
+número trocado), e isso alimenta respostas sobre um processo seletivo real —
+então, por enquanto, aprovação manual continua sendo obrigatória. Automatizar
+esse gate por completo é uma direção futura, ainda não implementada.
+
+```bash
+docker compose --profile import up -d --build import-ui
+# abra http://localhost:8090
+```
+
+Fluxo: envia PDF ou imagem/print → revê o markdown extraído num formulário
+editável → aprova → o `.md` cai em `data/knowledge/` no mesmo formato de
+sempre → roda o `ingest` normal pra indexar.
+
+**PDF visual (infográfico, slide) cai em extração por imagem
+automaticamente.** Extração de texto puro (`pypdf`) preserva a ordem de
+leitura, mas perde o pareamento espacial de um infográfico -- foi assim que
+uma etapa do processo seletivo acabou classificada errada numa resposta do
+bot (rótulo de uma caixa vizinha "vazou" pra etapa errada num texto virado
+lista solta). Por isso o importador detecta automaticamente texto "picotado"
+(linhas curtas demais) ou PDF escaneado (quase sem texto) e troca sozinho
+para renderizar cada página como imagem e transcrever via modelo de visão do
+Groq -- sem precisar que o revisor adivinhe de antemão que aquele PDF
+específico é visual. Existe um checkbox pra forçar esse caminho manualmente
+se a heurística não pegar sozinha.
+
+É uma ferramenta **dev-only**: fica atrás do profile `import` do Compose
+(nunca sobe com um `docker compose up -d` comum, o que subiria em
+produção/VPS) e a porta só é publicada em `127.0.0.1`, nunca na rede.
+
 ---
 
 ## Dashboard
@@ -199,7 +236,9 @@ nestbot/
 │   ├── rag.py               # orquestração do pipeline
 │   ├── evaluation.py        # LLM-as-judge
 │   ├── bot.py               # Telegram
-│   └── cli.py               # teste sem Telegram
+│   ├── cli.py               # teste sem Telegram
+│   ├── extracao.py          # extracao/renderizacao de PDF (sem LLM)
+│   └── import_web.py        # UI local: PDF/imagem -> rascunho -> data/knowledge/
 ├── scripts/
 │   ├── setup.sh
 │   └── simular_uso.py
@@ -224,6 +263,13 @@ nestbot/
 - **Informação de edições anteriores.** Alguns dados podem ser de edições
   passadas; o prompt instrui o modelo a sinalizar isso, mas a fonte oficial
   continua sendo a palavra final.
+- **Importador sem autenticação.** Mitigado por ficar atrás de um profile do
+  Compose e publicar a porta só em `127.0.0.1` — nunca pensado pra rodar
+  exposto numa rede compartilhada.
+- **Heurística de fallback visual é aproximada.** Detecta texto "picotado"
+  (linhas curtas) ou PDF escaneado, mas um documento visual com linhas
+  longas ainda pode passar batido pela extração de texto puro. O checkbox
+  de forçar extração por imagem é o escape hatch nesse caso.
 
 ---
 

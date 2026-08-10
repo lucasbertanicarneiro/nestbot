@@ -38,6 +38,10 @@ class Config:
     modelo_rapido: str = field(
         default_factory=lambda: _env("GROQ_MODELO_RAPIDO", "llama-3.1-8b-instant")
     )
+    # Modelo com visao: transcreve print/imagem no importador (src/import_web.py).
+    modelo_visao: str = field(
+        default_factory=lambda: _env("GROQ_MODELO_VISAO", "qwen/qwen3.6-27b")
+    )
 
     # --- Telegram ---
     telegram_token: str = field(default_factory=lambda: _env("TELEGRAM_BOT_TOKEN", obrigatorio=True))

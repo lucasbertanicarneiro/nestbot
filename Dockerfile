@@ -17,6 +17,13 @@ RUN pip install --no-cache-dir torch --index-url https://download.pytorch.org/wh
  && pip install --no-cache-dir -r requirements.txt \
  && apt-get purge -y build-essential && apt-get autoremove -y
 
+# poppler-utils: dependencia de runtime do pdf2image (fallback visual do
+# importador, ve src/extracao.py). Nao pode ser purgado como o
+# build-essential -- e usado em tempo de execucao, nao so no build.
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends poppler-utils \
+ && rm -rf /var/lib/apt/lists/*
+
 COPY src/ ./src/
 COPY data/ ./data/
 

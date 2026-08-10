@@ -53,6 +53,29 @@ services:
     ports:
       - "${PORTA_WEBHOOK:-8080}:8080"
 
+  # UI local de importacao (PDF/imagem -> rascunho -> data/knowledge/*.md).
+  # Dev-only: fica atras do profile "import" pra nunca subir com
+  # `docker compose up -d` normal (o que subiria em producao/VPS), e a
+  # porta so e publicada em loopback, nunca na rede.
+  import-ui:
+    build: .
+    container_name: nestbot-import-ui
+    profiles: ["import"]
+    command: ["uvicorn", "src.import_web:app", "--host", "0.0.0.0", "--port", "8090", "--reload"]
+    environment:
+      GROQ_API_KEY: ${GROQ_API_KEY:?defina GROQ_API_KEY no .env}
+      GROQ_MODELO_VISAO: ${GROQ_MODELO_VISAO:-qwen/qwen3.6-27b}
+      # nao usados por este servico, mas src/config.py exige as tres na
+      # construcao do Config -- passthrough evita duplicar a validacao.
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
+    volumes:
+      - ./data:/app/data
+      # sem isso, cada ajuste no import_web.py/prompt exigiria rebuild da imagem
+      - ./src:/app/src:ro
+    ports:
+      - "127.0.0.1:${PORTA_IMPORT_UI:-8090}:8090"
+
 volumes:
   pgdata:
   hf_cache:

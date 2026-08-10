@@ -10,6 +10,7 @@ from typing import Any
 
 from groq import Groq, RateLimitError, APIStatusError
 
+from . import prompts
 from .config import config
 
 log = logging.getLogger(__name__)
@@ -29,11 +30,12 @@ class RespostaLLM:
 
 
 def _chamar(
-    mensagens: list[dict[str, str]],
+    mensagens: list[dict[str, Any]],
     modelo: str,
     temperatura: float,
     max_tokens: int,
     json_mode: bool = False,
+    reasoning_format: str | None = None,
 ) -> RespostaLLM:
     inicio = time.perf_counter()
     kwargs: dict[str, Any] = {
@@ -44,6 +46,10 @@ def _chamar(
     }
     if json_mode:
         kwargs["response_format"] = {"type": "json_object"}
+    if reasoning_format:
+        # Parametro novo, ainda nao tipado no SDK instalado (groq==0.13.1) --
+        # extra_body repassa direto pro corpo da requisicao HTTP.
+        kwargs["extra_body"] = {"reasoning_format": reasoning_format}
 
     ultima_excecao: Exception | None = None
     for tentativa in range(MAX_TENTATIVAS):
@@ -76,7 +82,7 @@ def gerar(
     sistema: str,
     usuario: str,
     modelo: str | None = None,
-    temperatura: float = 0.2,
+    temperatura: float = 0.5,
     max_tokens: int = 900,
 ) -> RespostaLLM:
     """Geracao de texto livre (resposta final ao candidato)."""
@@ -124,3 +130,39 @@ def gerar_json(
         return {}
 
     return dado
+
+
+def _remover_fence_externo(texto: str) -> str:
+    """Alguns modelos embrulham a resposta inteira num bloco de codigo
+    mesmo quando instruidos a nao fazer isso -- remove so o fence externo,
+    se for exatamente um par abrindo/fechando em volta de tudo."""
+    texto = texto.strip()
+    if texto.startswith("```") and texto.endswith("```") and texto.count("```") == 2:
+        linhas = texto.split("\n")
+        return "\n".join(linhas[1:-1]).strip()
+    return texto
+
+
+def transcrever_imagem(imagem_b64: str, mime: str, modelo: str | None = None) -> RespostaLLM:
+    """Transcreve print/imagem em markdown. Usada pelo importador (src/import_web.py)."""
+    mensagens: list[dict[str, Any]] = [
+        {"role": "system", "content": prompts.IMPORTADOR_VISAO_SISTEMA},
+        {
+            "role": "user",
+            "content": [
+                {"type": "text", "text": "Transcreva o conteudo desta imagem em markdown."},
+                {"type": "image_url", "image_url": {"url": f"data:{mime};base64,{imagem_b64}"}},
+            ],
+        },
+    ]
+    resposta = _chamar(
+        mensagens=mensagens,
+        modelo=modelo or config.modelo_visao,
+        temperatura=0.1,
+        max_tokens=2500,
+        # qwen3.6 e um modelo "thinking" -- sem isso, o <think>...</think>
+        # vaza pro corpo do documento que vai pra base.
+        reasoning_format="hidden",
+    )
+    resposta.texto = _remover_fence_externo(resposta.texto)
+    return resposta

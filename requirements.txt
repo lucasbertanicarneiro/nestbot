@@ -16,3 +16,10 @@ python-telegram-bot==21.9
 python-dotenv==1.0.1
 python-frontmatter==1.1.0
 numpy==1.26.4
+
+# --- Importador local (PDF/imagem -> data/knowledge/) ---
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+python-multipart==0.0.20
+pypdf==5.1.0
+pdf2image==1.17.0

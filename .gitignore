@@ -26,3 +26,6 @@ venv/
 
 # Logs
 *.log
+
+# Rascunhos do importador (data/import_web.py) -- estado intermediario, nao versionar
+data/.rascunhos/
