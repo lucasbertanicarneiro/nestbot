@@ -60,7 +60,7 @@ def _perguntar(pergunta: str, avaliar: bool) -> None:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="CLI de teste do NestBot")
+    parser = argparse.ArgumentParser(description="CLI de teste do Henri")
     parser.add_argument("-p", "--pergunta", help="pergunta unica e sai")
     parser.add_argument("--diagnostico", action="store_true", help="so mostra a recuperacao")
     parser.add_argument("--sem-avaliacao", action="store_true", help="pula o LLM-as-judge")
@@ -74,7 +74,7 @@ def main() -> None:
         db.fechar_pool()
         return
 
-    print("NestBot CLI. Ctrl+C para sair. Prefixo '?' faz so o diagnostico.\n")
+    print("Henri CLI. Ctrl+C para sair. Prefixo '?' faz so o diagnostico.\n")
     try:
         while True:
             entrada = input("> ").strip()

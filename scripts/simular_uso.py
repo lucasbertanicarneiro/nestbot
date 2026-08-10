@@ -69,7 +69,7 @@ PERGUNTAS = [
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Simulador de trafego do NestBot")
+    parser = argparse.ArgumentParser(description="Simulador de trafego do Henri")
     parser.add_argument("--n", type=int, default=40, help="quantidade de perguntas")
     parser.add_argument("--pausa", type=float, default=2.5, help="segundos entre perguntas")
     parser.add_argument("--sem-avaliacao", action="store_true")

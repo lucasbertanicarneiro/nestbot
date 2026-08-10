@@ -67,14 +67,19 @@ def responder(pergunta: str, usuario_hash: str) -> ResultadoRAG:
 
     categoria, no_escopo = _classificar(pergunta)
 
-    # --- fora de escopo: nem chega a consultar a base ---
+    # --- saudacao ou fora de escopo: nem chega a consultar a base ---
     if not no_escopo:
+        if categoria == "saudacao":
+            rota, resposta = "saudacao", prompts.MENSAGEM_SAUDACAO
+        else:
+            rota, resposta = "fora_de_escopo", prompts.MENSAGEM_FORA_ESCOPO
+
         interacao_id = db.registrar_interacao({
             "usuario_hash": usuario_hash,
             "pergunta": pergunta,
-            "categoria_detectada": "fora_de_escopo",
-            "rota": "fora_de_escopo",
-            "resposta": prompts.MENSAGEM_FORA_ESCOPO,
+            "categoria_detectada": categoria,
+            "rota": rota,
+            "resposta": resposta,
             "chunks_recuperados": [],
             "n_chunks": 0,
             "score_medio": None,
@@ -89,9 +94,9 @@ def responder(pergunta: str, usuario_hash: str) -> ResultadoRAG:
         })
         return ResultadoRAG(
             interacao_id=interacao_id,
-            resposta=prompts.MENSAGEM_FORA_ESCOPO,
-            rota="fora_de_escopo",
-            categoria="fora_de_escopo",
+            resposta=resposta,
+            rota=rota,
+            categoria=categoria,
             chunks=[],
             sem_contexto=False,
             score_maximo=None,

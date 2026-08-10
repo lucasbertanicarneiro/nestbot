@@ -182,7 +182,7 @@ def ingerir_tudo(recriar: bool = False) -> None:
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Ingestao da base de conhecimento do NestBot")
+    parser = argparse.ArgumentParser(description="Ingestao da base de conhecimento do Henri")
     parser.add_argument("--recriar", action="store_true", help="limpa a base antes de ingerir")
     args = parser.parse_args()
     ingerir_tudo(recriar=args.recriar)

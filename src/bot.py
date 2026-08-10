@@ -36,7 +36,8 @@ log = logging.getLogger(__name__)
 LIMITE_TELEGRAM = 4096
 
 BOAS_VINDAS = (
-    "Opa! Eu sou o *NestBot*.\n\n"
+    "Opa! Eu sou o *Henri* -- nome em homenagem a Henri Nestle, fundador da "
+    "marca (bot nao-oficial, projeto pessoal sem vinculo com a Nestle).\n\n"
     "Respondo duvidas sobre o Programa de Trainee da Nestle com base em "
     "documentos e comunicados oficiais -- e cito a fonte de cada resposta.\n\n"
     "Pode perguntar sobre:\n"
@@ -67,6 +68,8 @@ SOBRE = (
     "recuperados\n"
     "5. Um segundo modelo julga a resposta e as notas vao para um dashboard\n\n"
     "Nao guardo seu ID do Telegram: ele e hasheado antes de ir para o banco.\n\n"
+    "Meu nome e uma homenagem a Henri Nestle, fundador da marca -- nao sou um "
+    "canal oficial da Nestle.\n\n"
     "Codigo aberto -- feito por um candidato, para candidatos."
 )
 
