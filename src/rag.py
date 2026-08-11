@@ -26,7 +26,7 @@ log = logging.getLogger(__name__)
 class ResultadoRAG:
     interacao_id: int
     resposta: str
-    rota: str                       # rag | fora_de_escopo | erro
+    rota: str                       # rag | saudacao | despedida | fora_de_escopo | erro
     categoria: str | None
     chunks: list[ChunkRecuperado]
     sem_contexto: bool
@@ -40,6 +40,24 @@ def _montar_contexto(chunks: list[ChunkRecuperado]) -> str:
     return "\n\n".join(partes)
 
 
+TAMANHO_MAX_RESPOSTA_HISTORICO = 500
+
+
+def _montar_historico(historico: list[dict]) -> str:
+    """Formata as trocas anteriores para entrar no prompt. String vazia se
+    nao ha historico -- assim a primeira pergunta de uma sessao nao paga
+    tokens extra por um bloco vazio."""
+    if not historico:
+        return ""
+    linhas = []
+    for turno in historico:
+        resposta = turno["resposta"].split("\n\nFontes:")[0].strip()
+        if len(resposta) > TAMANHO_MAX_RESPOSTA_HISTORICO:
+            resposta = resposta[:TAMANHO_MAX_RESPOSTA_HISTORICO] + "..."
+        linhas.append(f"Candidato: {turno['pergunta']}\nHenri: {resposta}")
+    return "\n\n".join(linhas)
+
+
 def _montar_linha_fontes(chunks: list[ChunkRecuperado]) -> str:
     """Monta 'Fontes: ...' deterministicamente a partir dos chunks usados,
     em vez de confiar no LLM para citar -- ele nao obedece de forma
@@ -48,10 +66,13 @@ def _montar_linha_fontes(chunks: list[ChunkRecuperado]) -> str:
     return "Fontes: " + ", ".join(nomes)
 
 
-def _classificar(pergunta: str) -> tuple[str, bool]:
+def _classificar(pergunta: str, historico_texto: str) -> tuple[str, bool]:
     """Roteador barato. Falha aberta: erro no classificador nao bloqueia o RAG."""
     try:
-        saida = gerar_json(prompts.ROTEADOR_SISTEMA, pergunta)
+        usuario = prompts.ROTEADOR_USUARIO.format(
+            historico=historico_texto or "(nenhum)", pergunta=pergunta
+        )
+        saida = gerar_json(prompts.ROTEADOR_SISTEMA, usuario)
         categoria = saida.get("categoria", "institucional")
         no_escopo = bool(saida.get("no_escopo", True))
         if categoria not in prompts.CATEGORIAS:
@@ -65,12 +86,22 @@ def _classificar(pergunta: str) -> tuple[str, bool]:
 def responder(pergunta: str, usuario_hash: str) -> ResultadoRAG:
     inicio_total = time.perf_counter()
 
-    categoria, no_escopo = _classificar(pergunta)
+    historico = db.buscar_historico(
+        usuario_hash, config.historico_turnos, config.historico_janela_minutos
+    )
+    historico_texto = _montar_historico(historico)
+
+    categoria, no_escopo = _classificar(pergunta, historico_texto)
 
     # --- saudacao ou fora de escopo: nem chega a consultar a base ---
     if not no_escopo:
         if categoria == "saudacao":
-            rota, resposta = "saudacao", prompts.MENSAGEM_SAUDACAO
+            rota = "saudacao"
+            # Historico presente: nao repete a apresentacao completa, ja
+            # rodada nesta conversa (ex: "ok, tenho outras duvidas").
+            resposta = prompts.MENSAGEM_CONTINUACAO if historico_texto else prompts.MENSAGEM_SAUDACAO
+        elif categoria == "despedida":
+            rota, resposta = "despedida", prompts.MENSAGEM_DESPEDIDA
         else:
             rota, resposta = "fora_de_escopo", prompts.MENSAGEM_FORA_ESCOPO
 
@@ -146,9 +177,14 @@ def responder(pergunta: str, usuario_hash: str) -> ResultadoRAG:
     # --- geracao ---
     contexto = _montar_contexto(chunks)
     try:
+        bloco_historico = (
+            f"HISTORICO DA CONVERSA:\n{historico_texto}\n\n" if historico_texto else ""
+        )
         saida = gerar(
             sistema=prompts.GERACAO_SISTEMA,
-            usuario=prompts.GERACAO_USUARIO.format(contexto=contexto, pergunta=pergunta),
+            usuario=prompts.GERACAO_USUARIO.format(
+                historico=bloco_historico, contexto=contexto, pergunta=pergunta
+            ),
         )
         resposta_texto = saida.texto.strip() + "\n\n" + _montar_linha_fontes(chunks)
         rota = "rag"

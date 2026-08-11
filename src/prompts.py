@@ -9,6 +9,7 @@ CATEGORIAS = [
     "programa",
     "institucional",
     "saudacao",
+    "despedida",
     "fora_de_escopo",
 ]
 
@@ -20,11 +21,25 @@ Devolva APENAS um objeto JSON com as chaves:
   como empregadora ou o processo seletivo; false caso contrario.
 
 Use "saudacao" e no_escopo=false para cumprimentos e conversa de abertura sem
-pergunta de verdade (bom dia, oi, ola, tudo bem, boa tarde etc).
+pergunta de verdade (bom dia, oi, ola, tudo bem, boa tarde etc), e tambem
+para mensagens no meio da conversa que so sinalizam que a pessoa vai
+continuar perguntando, sem fazer uma pergunta de verdade ainda (ex: "beleza",
+"entendi", "tenho mais uma duvida", "ok").
+
+Use "despedida" e no_escopo=false para agradecimento, encerramento ou
+despedida -- a pessoa esta sinalizando que terminou, nao que vai continuar
+(ex: "ok, obrigado", "valeu, era so isso", "entendi tudo, obrigada",
+"falou", "tchau").
 
 Use "fora_de_escopo" e no_escopo=false para conversa fiada que nao seja
-saudacao, pedido de codigo, outros assuntos e qualquer coisa nao relacionada
-ao programa.
+saudacao/despedida, pedido de codigo, outros assuntos e qualquer coisa nao
+relacionada ao programa.
+
+Voce pode receber um HISTORICO RECENTE da conversa antes da pergunta atual.
+Use-o SOMENTE para entender de que a pergunta atual esta falando quando ela
+depende do que veio antes (ex: "e isso e remoto?" depois de uma pergunta
+sobre vagas). Nao classifique com base no historico sozinho -- a pergunta
+atual e o que importa.
 
 EXEMPLOS:
 "qual a nota de corte do teste?" -> categoria "etapas_processo", no_escopo true
@@ -33,6 +48,9 @@ EXEMPLOS:
 "tem cota para PCD?" -> categoria "requisitos", no_escopo true
 "bom dia" -> categoria "saudacao", no_escopo false
 "oi, tudo bem?" -> categoria "saudacao", no_escopo false
+"tenho mais uma duvida" -> categoria "saudacao", no_escopo false
+"ok, obrigado" -> categoria "despedida", no_escopo false
+"valeu, entendi tudo" -> categoria "despedida", no_escopo false
 "me ensina a fazer bolo" -> categoria "fora_de_escopo", no_escopo false
 "qual a capital da Franca?" -> categoria "fora_de_escopo", no_escopo false
 
@@ -40,6 +58,12 @@ Na duvida, prefira no_escopo=true: e melhor consultar a base e admitir
 que nao sabe do que recusar uma pergunta legitima.
 
 Nao escreva nada alem do JSON."""
+
+ROTEADOR_USUARIO = """HISTORICO RECENTE:
+{historico}
+
+PERGUNTA ATUAL:
+{pergunta}"""
 
 GERACAO_SISTEMA = """Voce e o Henri, assistente (nao-oficial, em homenagem a
 Henri Nestle) que tira duvidas de candidatos ao Programa de Trainee da Nestle.
@@ -57,6 +81,10 @@ REGRAS INEGOCIAVEIS:
 5. Portugues do Brasil, tom direto e acolhedor. Maximo 4 paragrafos curtos.
 6. Se a informacao no contexto for de uma edicao anterior do programa, avise
    que pode ter mudado.
+7. Se houver HISTORICO DA CONVERSA, use-o SOMENTE para entender a pergunta
+   atual (ex: resolver "isso", "essa vaga", "e sobre..."). O historico nao e
+   fonte de fatos -- se uma resposta anterior tiver algo que o CONTEXTO atual
+   nao sustenta, nao repita. Responda sempre com base no CONTEXTO desta vez.
 
 ESTILO -- fale como uma pessoa, nao como um comunicado corporativo:
 - Va direto na resposta. Nao repita a pergunta nem anuncie o que vai fazer.
@@ -68,7 +96,7 @@ ESTILO -- fale como uma pessoa, nao como um comunicado corporativo:
 - Se a resposta cabe em 1-2 frases, pare ai. Nao estufe com paragrafos de
   preenchimento so para parecer mais completo."""
 
-GERACAO_USUARIO = """CONTEXTO:
+GERACAO_USUARIO = """{historico}CONTEXTO:
 {contexto}
 
 PERGUNTA DO CANDIDATO:
@@ -137,3 +165,9 @@ MENSAGEM_SAUDACAO = (
     "e localidades.\n\n"
     "Manda sua pergunta."
 )
+
+# Usada no lugar de MENSAGEM_SAUDACAO quando ja existe historico na conversa --
+# evita repetir a apresentacao completa como se a conversa estivesse comecando.
+MENSAGEM_CONTINUACAO = "Pode perguntar."
+
+MENSAGEM_DESPEDIDA = "De nada! Boa sorte no processo."

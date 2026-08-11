@@ -67,6 +67,14 @@ class Config:
     # Constante do Reciprocal Rank Fusion (valor classico da literatura).
     rrf_k: int = 60
 
+    # --- Memoria de conversa ---
+    # Quantas trocas anteriores do mesmo usuario entram no prompt.
+    historico_turnos: int = field(default_factory=lambda: int(_env("HISTORICO_TURNOS", "3")))
+    # Trocas mais antigas que isso nao contam mais como a mesma "sessao".
+    historico_janela_minutos: int = field(
+        default_factory=lambda: int(_env("HISTORICO_JANELA_MINUTOS", "60"))
+    )
+
     # --- Avaliacao ---
     avaliar_automaticamente: bool = field(
         default_factory=lambda: _env("AVALIAR_AUTOMATICAMENTE", "true").lower() == "true"

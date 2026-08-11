@@ -140,6 +140,28 @@ def registrar_lacuna(interacao_id: int | None, pergunta: str, motivo: str) -> No
         cur.execute(sql, (interacao_id, pergunta, motivo))
 
 
+def buscar_historico(usuario_hash: str, limite: int, janela_minutos: int) -> list[dict[str, Any]]:
+    """Ultimas trocas 'de verdade' do usuario: rota=rag, com resposta, dentro
+    da janela de tempo. Ignora saudacao/fora_de_escopo (nao agregam contexto
+    de conversa) e respostas sem_contexto (nao ha fato novo pra lembrar). A
+    janela de tempo evita reviver uma conversa de dias atras como se fosse a
+    mesma sessao."""
+    sql = """
+        SELECT pergunta, resposta, criado_em
+          FROM interacoes
+         WHERE usuario_hash = %s
+           AND rota = 'rag'
+           AND sem_contexto = FALSE
+           AND resposta IS NOT NULL
+           AND criado_em > now() - (%s || ' minutes')::interval
+         ORDER BY criado_em DESC
+         LIMIT %s;
+    """
+    with cursor() as cur:
+        cur.execute(sql, (usuario_hash, janela_minutos, limite))
+        return list(reversed(cur.fetchall()))
+
+
 def atualizar_estatisticas_chunks(chunks: list[dict[str, Any]]) -> None:
     """Incrementa contadores usados pela view de cobertura da base."""
     if not chunks:
