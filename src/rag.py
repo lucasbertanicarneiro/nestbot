@@ -11,6 +11,7 @@ Fluxo:
 from __future__ import annotations
 
 import logging
+import re
 import time
 from dataclasses import dataclass
 
@@ -53,9 +54,28 @@ def _montar_historico(historico: list[dict]) -> str:
     for turno in historico:
         resposta = turno["resposta"].split("\n\nFontes:")[0].strip()
         if len(resposta) > TAMANHO_MAX_RESPOSTA_HISTORICO:
-            resposta = resposta[:TAMANHO_MAX_RESPOSTA_HISTORICO] + "..."
+            # Mantem inicio (assunto) E fim (fechamento/pergunta de
+            # continuacao) -- cortar so do inicio pra frente escondia
+            # justamente a pergunta de fechamento em respostas longas,
+            # fazendo o roteador "esquecer" o que o Henri tinha acabado de
+            # oferecer e reescrever um "sim" pra um assunto ja coberto.
+            metade = TAMANHO_MAX_RESPOSTA_HISTORICO // 2
+            resposta = f"{resposta[:metade]} [...] {resposta[-metade:]}"
         linhas.append(f"Candidato: {turno['pergunta']}\nHenri: {resposta}")
     return "\n\n".join(linhas)
+
+
+_CARACTERES_MARKDOWN = re.compile(r"[_*`\[]")
+
+
+def _sanitizar_nome(nome: str | None) -> str | None:
+    """O nome vem livre do Telegram e entra em mensagens enviadas com
+    parse_mode Markdown (legado, sem escape). Um nome com _, * ou ` sem par
+    quebraria o parse da mensagem inteira -- remove esses caracteres."""
+    if not nome:
+        return None
+    limpo = _CARACTERES_MARKDOWN.sub("", nome).strip()
+    return limpo or None
 
 
 def _montar_linha_fontes(chunks: list[ChunkRecuperado]) -> str:
@@ -66,8 +86,11 @@ def _montar_linha_fontes(chunks: list[ChunkRecuperado]) -> str:
     return "Fontes: " + ", ".join(nomes)
 
 
-def _classificar(pergunta: str, historico_texto: str) -> tuple[str, bool]:
-    """Roteador barato. Falha aberta: erro no classificador nao bloqueia o RAG."""
+def _classificar(pergunta: str, historico_texto: str) -> tuple[str, bool, str]:
+    """Roteador barato. Falha aberta: erro no classificador nao bloqueia o RAG.
+    Tambem devolve a pergunta reescrita de forma independente do historico --
+    necessaria pra recuperacao funcionar quando a pergunta atual sozinha nao
+    tem conteudo pesquisavel (ex: "sim" respondendo a uma pergunta do Henri)."""
     try:
         usuario = prompts.ROTEADOR_USUARIO.format(
             historico=historico_texto or "(nenhum)", pergunta=pergunta
@@ -77,21 +100,24 @@ def _classificar(pergunta: str, historico_texto: str) -> tuple[str, bool]:
         no_escopo = bool(saida.get("no_escopo", True))
         if categoria not in prompts.CATEGORIAS:
             categoria = "institucional"
-        return categoria, no_escopo
+        pergunta_standalone = (saida.get("pergunta_standalone") or "").strip() or pergunta
+        return categoria, no_escopo, pergunta_standalone
     except Exception:
         log.exception("Falha no roteador; seguindo com o RAG mesmo assim.")
-        return "institucional", True
+        return "institucional", True, pergunta
 
 
-def responder(pergunta: str, usuario_hash: str) -> ResultadoRAG:
+def responder(pergunta: str, usuario_hash: str, nome: str | None = None) -> ResultadoRAG:
     inicio_total = time.perf_counter()
+
+    nome = _sanitizar_nome(nome)
 
     historico = db.buscar_historico(
         usuario_hash, config.historico_turnos, config.historico_janela_minutos
     )
     historico_texto = _montar_historico(historico)
 
-    categoria, no_escopo = _classificar(pergunta, historico_texto)
+    categoria, no_escopo, pergunta_standalone = _classificar(pergunta, historico_texto)
 
     # --- saudacao ou fora de escopo: nem chega a consultar a base ---
     if not no_escopo:
@@ -99,9 +125,15 @@ def responder(pergunta: str, usuario_hash: str) -> ResultadoRAG:
             rota = "saudacao"
             # Historico presente: nao repete a apresentacao completa, ja
             # rodada nesta conversa (ex: "ok, tenho outras duvidas").
-            resposta = prompts.MENSAGEM_CONTINUACAO if historico_texto else prompts.MENSAGEM_SAUDACAO
+            if historico_texto:
+                resposta = prompts.MENSAGEM_CONTINUACAO
+            else:
+                abertura = f", {nome}" if nome else ""
+                resposta = prompts.MENSAGEM_SAUDACAO.format(abertura=abertura)
         elif categoria == "despedida":
-            rota, resposta = "despedida", prompts.MENSAGEM_DESPEDIDA
+            rota = "despedida"
+            fechamento = f", {nome}" if nome else ""
+            resposta = prompts.MENSAGEM_DESPEDIDA.format(fechamento=fechamento)
         else:
             rota, resposta = "fora_de_escopo", prompts.MENSAGEM_FORA_ESCOPO
 
@@ -134,8 +166,11 @@ def responder(pergunta: str, usuario_hash: str) -> ResultadoRAG:
         )
 
     # --- recuperacao ---
+    # Usa a pergunta reescrita pelo roteador: a pergunta original pode nao
+    # ter conteudo pesquisavel sozinha (ex: "sim" respondendo a algo que o
+    # proprio Henri perguntou).
     inicio_retrieval = time.perf_counter()
-    chunks = recuperar(pergunta)
+    chunks = recuperar(pergunta_standalone)
     latencia_retrieval = int((time.perf_counter() - inicio_retrieval) * 1000)
 
     scores = [c.score for c in chunks] or [0.0]
@@ -177,13 +212,18 @@ def responder(pergunta: str, usuario_hash: str) -> ResultadoRAG:
     # --- geracao ---
     contexto = _montar_contexto(chunks)
     try:
+        # So passa o nome na primeira resposta real da conversa (sem
+        # historico ainda) -- evita o LLM repetir o nome em toda resposta,
+        # o que ficava artificial ja na segunda troca.
+        bloco_nome = f"NOME DO CANDIDATO: {nome}\n\n" if nome and not historico_texto else ""
         bloco_historico = (
             f"HISTORICO DA CONVERSA:\n{historico_texto}\n\n" if historico_texto else ""
         )
         saida = gerar(
             sistema=prompts.GERACAO_SISTEMA,
             usuario=prompts.GERACAO_USUARIO.format(
-                historico=bloco_historico, contexto=contexto, pergunta=pergunta
+                nome_bloco=bloco_nome, historico=bloco_historico, contexto=contexto,
+                pergunta=pergunta_standalone,
             ),
         )
         resposta_texto = saida.texto.strip() + "\n\n" + _montar_linha_fontes(chunks)

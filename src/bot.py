@@ -14,6 +14,7 @@ import os
 
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.constants import ChatAction, ParseMode
+from telegram.error import BadRequest
 from telegram.ext import (
     Application,
     CallbackQueryHandler,
@@ -115,21 +116,30 @@ async def tratar_mensagem(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> Non
         return
 
     usuario_hash = db.hashear_usuario(update.effective_user.id)
+    nome = update.effective_user.first_name
     await ctx.bot.send_chat_action(update.effective_chat.id, ChatAction.TYPING)
 
     # O pipeline e sincrono (psycopg + groq). Roda em thread para nao
     # travar o event loop do bot.
-    resultado = await asyncio.to_thread(rag.responder, pergunta, usuario_hash)
+    resultado = await asyncio.to_thread(rag.responder, pergunta, usuario_hash, nome)
 
     texto = (resultado.resposta + _formatar_rodape(resultado))[:LIMITE_TELEGRAM]
     teclado = _botoes_feedback(resultado.interacao_id) if resultado.rota == "rag" else None
 
-    await update.message.reply_text(
-        texto,
-        parse_mode=ParseMode.MARKDOWN,
-        reply_markup=teclado,
-        disable_web_page_preview=True,
-    )
+    try:
+        await update.message.reply_text(
+            texto,
+            parse_mode=ParseMode.MARKDOWN,
+            reply_markup=teclado,
+            disable_web_page_preview=True,
+        )
+    except BadRequest:
+        # Markdown malformado (ex: caractere especial vindo de um trecho da
+        # base) nao pode deixar o usuario sem resposta nenhuma.
+        log.warning("Falha ao parsear Markdown na resposta; reenviando sem formatacao.")
+        await update.message.reply_text(
+            texto, reply_markup=teclado, disable_web_page_preview=True,
+        )
 
     if resultado.rota == "rag" and not resultado.sem_contexto:
         evaluation.avaliar_em_background(

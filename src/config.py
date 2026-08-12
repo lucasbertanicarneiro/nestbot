@@ -68,8 +68,12 @@ class Config:
     rrf_k: int = 60
 
     # --- Memoria de conversa ---
-    # Quantas trocas anteriores do mesmo usuario entram no prompt.
-    historico_turnos: int = field(default_factory=lambda: int(_env("HISTORICO_TURNOS", "3")))
+    # Quantas trocas anteriores do mesmo usuario entram no prompt. So a mais
+    # recente (default 1) -- com mais de uma, um assunto antigo que se repete
+    # na janela vira "maioria" e o roteador tende a puxar de volta pra ele em
+    # vez de resolver a pergunta de fechamento mais recente (ex: "sim" voltando
+    # sempre pro mesmo assunto de 2-3 trocas atras).
+    historico_turnos: int = field(default_factory=lambda: int(_env("HISTORICO_TURNOS", "1")))
     # Trocas mais antigas que isso nao contam mais como a mesma "sessao".
     historico_janela_minutos: int = field(
         default_factory=lambda: int(_env("HISTORICO_JANELA_MINUTOS", "60"))

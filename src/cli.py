@@ -31,8 +31,8 @@ def _diagnosticar(pergunta: str) -> None:
         print(f"    {c.conteudo[:220].replace(chr(10), ' ')}...\n")
 
 
-def _perguntar(pergunta: str, avaliar: bool) -> None:
-    resultado = rag.responder(pergunta, USUARIO_TESTE)
+def _perguntar(pergunta: str, avaliar: bool, nome: str | None = None) -> None:
+    resultado = rag.responder(pergunta, USUARIO_TESTE, nome)
 
     print("\n" + "=" * 70)
     print(resultado.resposta)
@@ -64,13 +64,14 @@ def main() -> None:
     parser.add_argument("-p", "--pergunta", help="pergunta unica e sai")
     parser.add_argument("--diagnostico", action="store_true", help="so mostra a recuperacao")
     parser.add_argument("--sem-avaliacao", action="store_true", help="pula o LLM-as-judge")
+    parser.add_argument("--nome", help="simula o first_name do Telegram, pra testar personalizacao")
     args = parser.parse_args()
 
     if args.pergunta:
         if args.diagnostico:
             _diagnosticar(args.pergunta)
         else:
-            _perguntar(args.pergunta, avaliar=not args.sem_avaliacao)
+            _perguntar(args.pergunta, avaliar=not args.sem_avaliacao, nome=args.nome)
         db.fechar_pool()
         return
 
@@ -83,7 +84,7 @@ def main() -> None:
             if entrada.startswith("?"):
                 _diagnosticar(entrada[1:].strip())
             else:
-                _perguntar(entrada, avaliar=not args.sem_avaliacao)
+                _perguntar(entrada, avaliar=not args.sem_avaliacao, nome=args.nome)
     except (KeyboardInterrupt, EOFError):
         print("\nAte mais.")
     finally:
