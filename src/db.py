@@ -31,6 +31,7 @@ def obter_pool() -> ConnectionPool:
             conninfo=config.dsn,
             min_size=1,
             max_size=8,
+            timeout=config.db_pool_timeout_seg,
             configure=_configurar_conexao,
             open=True,
         )

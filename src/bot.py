@@ -107,6 +107,13 @@ async def cmd_sobre(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> None:
     await update.message.reply_text(SOBRE, parse_mode=ParseMode.MARKDOWN)
 
 
+async def tratar_nao_texto(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> None:
+    """Sticker, foto, audio, documento etc. -- so entendo texto."""
+    await update.message.reply_text(
+        "Por enquanto so entendo texto. Manda sua duvida escrita que eu respondo."
+    )
+
+
 async def tratar_mensagem(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> None:
     pergunta = (update.message.text or "").strip()
     if not pergunta:
@@ -119,9 +126,21 @@ async def tratar_mensagem(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> Non
     nome = update.effective_user.first_name
     await ctx.bot.send_chat_action(update.effective_chat.id, ChatAction.TYPING)
 
-    # O pipeline e sincrono (psycopg + groq). Roda em thread para nao
-    # travar o event loop do bot.
-    resultado = await asyncio.to_thread(rag.responder, pergunta, usuario_hash, nome)
+    try:
+        # O pipeline e sincrono (psycopg + groq). Roda em thread para nao
+        # travar o event loop do bot.
+        resultado = await asyncio.to_thread(rag.responder, pergunta, usuario_hash, nome)
+    except Exception:
+        # Qualquer falha nao tratada no pipeline (ex: Postgres fora do ar)
+        # nao pode deixar o usuario sem resposta nenhuma -- isso ja e
+        # tratado dentro de rag.responder() pra erro de geracao, mas nao
+        # cobre erro de banco/recuperacao, que acontece antes daquele
+        # try/except.
+        log.exception("Falha nao tratada no pipeline RAG.")
+        await update.message.reply_text(
+            "Tive um problema tecnico agora. Pode tentar de novo em instantes?"
+        )
+        return
 
     texto = (resultado.resposta + _formatar_rodape(resultado))[:LIMITE_TELEGRAM]
     teclado = _botoes_feedback(resultado.interacao_id) if resultado.rota == "rag" else None
@@ -182,6 +201,7 @@ def main() -> None:
     app.add_handler(CommandHandler("sobre", cmd_sobre))
     app.add_handler(CallbackQueryHandler(tratar_feedback, pattern=r"^fb:"))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, tratar_mensagem))
+    app.add_handler(MessageHandler(~filters.TEXT & ~filters.COMMAND, tratar_nao_texto))
     app.add_error_handler(tratar_erro)
 
     webhook_url = os.getenv("TELEGRAM_WEBHOOK_URL", "").strip()

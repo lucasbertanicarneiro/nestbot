@@ -27,6 +27,13 @@ class Config:
     db_nome: str = field(default_factory=lambda: _env("POSTGRES_DB", "nestbot"))
     db_usuario: str = field(default_factory=lambda: _env("POSTGRES_USER", "nestbot"))
     db_senha: str = field(default_factory=lambda: _env("POSTGRES_PASSWORD", obrigatorio=True))
+    # Quanto esperar por uma conexao livre do pool antes de desistir. Padrao
+    # do psycopg_pool e 30s -- tempo demais pro usuario ficar vendo "digitando..."
+    # sem resposta quando o banco cai de vez; um valor menor ainda tolera
+    # instabilidade passageira de rede sem virar falso positivo.
+    db_pool_timeout_seg: float = field(
+        default_factory=lambda: float(_env("DB_POOL_TIMEOUT_SEG", "6"))
+    )
 
     # --- Groq ---
     groq_api_key: str = field(default_factory=lambda: _env("GROQ_API_KEY", obrigatorio=True))
