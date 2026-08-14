@@ -1,5 +1,7 @@
 # Henri
 
+[![tests](https://github.com/lucasbertanicarneiro/nestbot/actions/workflows/tests.yml/badge.svg)](https://github.com/lucasbertanicarneiro/nestbot/actions/workflows/tests.yml)
+
 Assistente de Telegram que responde dúvidas de candidatos ao Programa de Trainee
 da Nestlé, com arquitetura RAG e um dashboard que mede a qualidade da própria
 recuperação. O nome é uma homenagem a Henri Nestlé, fundador da marca.
@@ -54,7 +56,7 @@ nos documentos, e o dashboard existe para expor isso.
                     └─────────┬─────────┘
                               │
                     ┌─────────▼─────────┐
-                    │  Geração          │   Llama 3.3 70B, restrito ao contexto
+                    │  Geração          │   LLM forte (configurável), restrito ao contexto
                     └─────────┬─────────┘
                               │
               ┌───────────────┴───────────────┐
@@ -91,7 +93,8 @@ nos documentos, e o dashboard existe para expor isso.
 
 - **Python 3.12**
 - **PostgreSQL 16** + **pgvector** (busca vetorial) + **tsvector** (busca lexical)
-- **Groq API** — Llama 3.3 70B (geração) e Llama 3.1 8B (roteamento e avaliação)
+- **Groq API** — modelos configuráveis via `.env` (`GROQ_MODELO_GERACAO`,
+  `GROQ_MODELO_RAPIDO`); catálogo do Groq muda com frequência
 - **sentence-transformers** — `intfloat/multilingual-e5-small`, 384 dimensões
 - **python-telegram-bot** — polling em dev, webhook em produção
 - **Docker Compose**
@@ -127,6 +130,19 @@ docker compose run --rm bot python -m src.cli -p "qual o prazo?" --diagnostico
 docker compose up -d bot
 docker compose logs -f bot
 ```
+
+### Testes automatizados
+
+```bash
+pip install -r requirements-dev.txt
+python -m pytest -v
+```
+
+Roda fora do Docker, sem precisar de Postgres nem de chave da Groq no ar —
+cobre a lógica pura do pipeline (fusão RRF, parsing de JSON da LLM,
+sanitização de nome, truncamento de histórico, montagem da linha de
+fontes) com valores fake de ambiente (`tests/conftest.py`). Sobe no CI a
+cada push/PR pra `main` (badge no topo deste README).
 
 ### Populando o dashboard
 
@@ -225,6 +241,8 @@ nestbot/
 ├── analytics/
 │   ├── views.sql            # camada que o Power BI consome
 │   └── README.md            # guia de montagem do dashboard
+├── tests/                   # testes unitarios (pytest, sem Docker)
+├── .github/workflows/       # CI: roda os testes a cada push/PR
 ├── src/
 │   ├── config.py            # configuração via env
 │   ├── db.py                # pool, telemetria, hash de usuário

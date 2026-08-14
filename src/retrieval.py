@@ -89,12 +89,10 @@ def _buscar_lexical(pergunta: str, limite: int) -> list[dict]:
         return cur.fetchall()
 
 
-def recuperar(pergunta: str) -> list[ChunkRecuperado]:
-    """Executa as duas buscas, funde por RRF e devolve o top_k_final."""
-    vetoriais = _buscar_vetorial(pergunta, config.top_k_vetorial)
-    lexicais = _buscar_lexical(pergunta, config.top_k_lexical)
-
-    k = config.rrf_k
+def _fundir_rrf(
+    vetoriais: list[dict], lexicais: list[dict], k: float, top_k: int
+) -> list[ChunkRecuperado]:
+    """Funde as duas listas de resultados por Reciprocal Rank Fusion."""
     pontos: dict[int, float] = {}
     origens: dict[int, set[str]] = {}
     dados: dict[int, dict] = {}
@@ -118,7 +116,7 @@ def recuperar(pergunta: str) -> list[ChunkRecuperado]:
     ordenados = sorted(pontos.items(), key=lambda item: item[1], reverse=True)
 
     resultado: list[ChunkRecuperado] = []
-    for cid, score_rrf in ordenados[: config.top_k_final]:
+    for cid, score_rrf in ordenados[:top_k]:
         linha = dados[cid]
         origem_set = origens[cid]
         resultado.append(
@@ -133,6 +131,15 @@ def recuperar(pergunta: str) -> list[ChunkRecuperado]:
                 origem="ambos" if len(origem_set) > 1 else next(iter(origem_set)),
             )
         )
+    return resultado
+
+
+def recuperar(pergunta: str) -> list[ChunkRecuperado]:
+    """Executa as duas buscas, funde por RRF e devolve o top_k_final."""
+    vetoriais = _buscar_vetorial(pergunta, config.top_k_vetorial)
+    lexicais = _buscar_lexical(pergunta, config.top_k_lexical)
+
+    resultado = _fundir_rrf(vetoriais, lexicais, config.rrf_k, config.top_k_final)
 
     log.debug(
         "Recuperacao: %d vetoriais, %d lexicais, %d finais",

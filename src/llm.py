@@ -115,10 +115,16 @@ def gerar_json(
         max_tokens=max_tokens,
         json_mode=True,
     )
+    return _parsear_json_llm(resposta.texto)
+
+
+def _parsear_json_llm(texto: str) -> dict[str, Any]:
+    """Interpreta o texto devolvido pela API como um objeto JSON, tolerando
+    os dois jeitos de a Groq fugir do formato esperado."""
     try:
-        dado = json.loads(resposta.texto)
+        dado = json.loads(texto)
     except json.JSONDecodeError:
-        log.error("LLM devolveu JSON invalido: %s", resposta.texto[:300])
+        log.error("LLM devolveu JSON invalido: %s", texto[:300])
         return {}
 
     # Groq as vezes embrulha o objeto numa lista de 1 item.
@@ -126,7 +132,7 @@ def gerar_json(
         dado = dado[0] if dado and isinstance(dado[0], dict) else {}
 
     if not isinstance(dado, dict):
-        log.error("LLM devolveu JSON que nao e um objeto: %s", resposta.texto[:300])
+        log.error("LLM devolveu JSON que nao e um objeto: %s", texto[:300])
         return {}
 
     return dado
