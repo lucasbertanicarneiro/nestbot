@@ -220,6 +220,9 @@ produção/VPS) e a porta só é publicada em `127.0.0.1`, nunca na rede.
 
 ## Dashboard
 
+🔗 **[Ver o dashboard ao vivo](TODO-LINK-PUBLISH-TO-WEB)** — publicado via Power BI
+Publish to Web, com dado real de uso do bot.
+
 Ver [`analytics/README.md`](analytics/README.md) para a montagem no Power BI.
 
 Quatro páginas:

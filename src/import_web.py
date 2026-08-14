@@ -36,7 +36,7 @@ DIR_CONHECIMENTO = Path(__file__).resolve().parent.parent / "data" / "knowledge"
 DIR_RASCUNHOS = Path(__file__).resolve().parent.parent / "data" / ".rascunhos"
 
 # Pseudo-categorias de roteamento (prompts.CATEGORIAS) nao fazem sentido num documento.
-CATEGORIAS_DOC = [c for c in prompts.CATEGORIAS if c not in ("saudacao", "fora_de_escopo")]
+CATEGORIAS_DOC = [c for c in prompts.CATEGORIAS if c not in ("saudacao", "despedida", "fora_de_escopo")]
 
 EXTENSOES_IMAGEM = {
     ".png": "image/png",
@@ -130,31 +130,59 @@ def _layout(titulo_pagina: str, corpo: str) -> HTMLResponse:
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{_esc(titulo_pagina)} - Importador Henri</title>
 <style>
-  body {{ font-family: system-ui, sans-serif; max-width: 780px; margin: 2rem auto;
-         padding: 0 1rem; color: #1a1a1a; line-height: 1.4; }}
-  h1 {{ font-size: 1.3rem; }}
+  :root {{
+    --vinho: #7a1030;
+    --vinho-escuro: #56091f;
+    --creme: #faf6f0;
+    --tinta: #2b2420;
+    --tinta-suave: #6b6259;
+    --borda: #e4dcd0;
+  }}
+  * {{ box-sizing: border-box; }}
+  body {{ font-family: system-ui, sans-serif; max-width: 820px; margin: 0 auto;
+         padding: 0 1rem 3rem; color: var(--tinta); line-height: 1.5; background: var(--creme); }}
+  header.topo {{ border-bottom: 3px solid var(--vinho); padding: 1.75rem 0 1rem;
+    margin-bottom: 1.75rem; }}
+  header.topo .marca {{ font-size: .78rem; font-weight: 700; letter-spacing: .12em;
+    text-transform: uppercase; color: var(--vinho); }}
+  header.topo h1 {{ font-size: 1.4rem; margin: .2rem 0 0; color: var(--tinta); }}
+  .cartao {{ background: #fff; border: 1px solid var(--borda); border-radius: 10px;
+    padding: 1.5rem 1.75rem; box-shadow: 0 1px 3px rgba(43,36,32,.06); }}
   label {{ display: block; margin-top: 1rem; font-weight: 600; }}
   input[type=text], input[type=url], select, textarea {{
-    width: 100%; padding: .5rem; font: inherit; box-sizing: border-box;
-    border: 1px solid #ccc; border-radius: 4px; margin-top: .25rem;
+    width: 100%; padding: .55rem .6rem; font: inherit; box-sizing: border-box;
+    border: 1px solid var(--borda); border-radius: 6px; margin-top: .3rem; background: var(--creme);
+  }}
+  input:focus, select:focus, textarea:focus {{
+    outline: none; border-color: var(--vinho); background: #fff;
   }}
   textarea {{ min-height: 320px; font-family: ui-monospace, monospace; font-size: .9rem; }}
-  button {{ margin-top: 1.25rem; margin-right: .5rem; padding: .6rem 1.2rem; font: inherit;
-    border-radius: 4px; border: 1px solid #1a1a1a; background: #1a1a1a; color: #fff;
-    cursor: pointer; }}
-  button.secundario {{ background: #fff; color: #1a1a1a; }}
-  .aviso {{ background: #fff3cd; border: 1px solid #ffe08a; padding: .75rem;
-    border-radius: 4px; margin-top: 1rem; }}
-  .erro {{ background: #fde2e2; border: 1px solid #f5a3a3; padding: .75rem;
-    border-radius: 4px; margin-top: 1rem; }}
-  pre {{ background: #f0f0f0; padding: .75rem; border-radius: 4px; overflow-x: auto; }}
-  .campo-arquivo {{ border: 2px dashed #999; border-radius: 8px; padding: 2rem;
-    text-align: center; margin-top: .5rem; }}
+  button {{ margin-top: 1.25rem; margin-right: .5rem; padding: .6rem 1.3rem; font: inherit;
+    font-weight: 600; border-radius: 6px; border: 1px solid var(--vinho); background: var(--vinho);
+    color: #fff; cursor: pointer; }}
+  button:hover {{ background: var(--vinho-escuro); border-color: var(--vinho-escuro); }}
+  button.secundario {{ background: transparent; color: var(--vinho); }}
+  button.secundario:hover {{ background: rgba(122,16,48,.08); }}
+  a {{ color: var(--vinho); }}
+  .aviso {{ background: #fdf1de; border: 1px solid #f0d9a8; padding: .75rem;
+    border-radius: 6px; margin-top: 1rem; }}
+  .erro {{ background: #fbe4e4; border: 1px solid #eab3b3; padding: .75rem;
+    border-radius: 6px; margin-top: 1rem; }}
+  pre {{ background: var(--creme); border: 1px solid var(--borda); padding: .75rem;
+    border-radius: 6px; overflow-x: auto; }}
+  .campo-arquivo {{ border: 2px dashed var(--vinho); border-radius: 8px; padding: 2rem;
+    text-align: center; margin-top: .5rem; background: var(--creme); }}
+  p {{ color: var(--tinta-suave); }}
 </style>
 </head>
 <body>
-<h1>Importador de conhecimento &mdash; Henri</h1>
+<header class="topo">
+  <div class="marca">Henri &middot; Programa de Trainee</div>
+  <h1>Importador de conhecimento</h1>
+</header>
+<div class="cartao">
 {corpo}
+</div>
 </body>
 </html>"""
     return HTMLResponse(html_doc)
@@ -172,14 +200,14 @@ antes de entrar na base &mdash; nada e gravado sem sua revisao.</p>
 <form action="/extrair" method="post" enctype="multipart/form-data">
   <div class="campo-arquivo">
     <input type="file" name="arquivos" multiple accept=".pdf,.png,.jpg,.jpeg,.webp" required>
-    <p style="color:#666; font-size:.9rem;">PDF com texto nativo ou imagem (print de tela).
+    <p style="font-size:.9rem;">PDF com texto nativo ou imagem (print de tela).
     Varias imagens do mesmo documento (ex: print rolado)? Selecione todas de uma vez.</p>
   </div>
   <label style="font-weight:400; margin-top:.75rem;">
     <input type="checkbox" name="forcar_visao_pdf" value="true">
     Forcar extracao de PDF por imagem
   </label>
-  <p style="color:#666; font-size:.85rem; margin-top:.15rem;">
+  <p style="font-size:.85rem; margin-top:.15rem;">
     Normalmente nao precisa mexer nisso: PDF com texto solto/picotado
     (infografico, slide) ou escaneado cai automaticamente na extracao por
     imagem. So marque se o texto sair errado mesmo assim.
