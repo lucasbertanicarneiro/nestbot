@@ -26,9 +26,13 @@ O programa e uma contratacao formal, com carteira assinada.
 - Licencas parentais
 - Programa de Bem-Estar, com acesso a rede online de nutricionistas e
   psicologos e programas de atividades fisicas
-- Auxilio lactente e materna, auxilio uniforme e material escolar
+- Auxilio lactente e materna, auxilio uniforme e material escolar, e
+  brinquedos para filhos
 - Estacionamento gratuito, a depender da localidade de atuacao
 - Ambiente pet friendly, a depender da localidade de atuacao
+- Cesta de Natal
+- Ajuda para oculos e lentes de contato
+- Cooperativa de credito
 
 # Trainee Hub
 
