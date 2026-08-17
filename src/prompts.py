@@ -59,6 +59,7 @@ EXEMPLOS (pergunta_standalone omitido quando e igual a pergunta atual):
 "tenho mais uma duvida" -> categoria "saudacao", no_escopo false
 "ok, obrigado" -> categoria "despedida", no_escopo false
 "valeu, entendi tudo" -> categoria "despedida", no_escopo false
+"Ok, muito obrigado pelas informacoes, Henri!" -> categoria "despedida", no_escopo false
 "me ensina a fazer bolo" -> categoria "fora_de_escopo", no_escopo false
 "qual a capital da Franca?" -> categoria "fora_de_escopo", no_escopo false
 
@@ -214,6 +215,9 @@ MENSAGEM_SAUDACAO = (
 
 # Usada no lugar de MENSAGEM_SAUDACAO quando ja existe historico na conversa --
 # evita repetir a apresentacao completa como se a conversa estivesse comecando.
-MENSAGEM_CONTINUACAO = "Pode perguntar."
+MENSAGEM_CONTINUACAO = "Pode perguntar. Se quiser ver os comandos disponiveis, e so mandar /ajuda."
 
-MENSAGEM_DESPEDIDA = "De nada{fechamento}! Boa sorte no processo."
+MENSAGEM_DESPEDIDA = (
+    "De nada{fechamento}! Boa sorte no processo.\n\n"
+    "Quando quiser, volta e manda outra pergunta -- ou usa /ajuda pra ver os comandos."
+)

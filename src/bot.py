@@ -52,26 +52,8 @@ BOAS_VINDAS = (
 AJUDA = (
     "*Comandos*\n"
     "/start - apresentacao\n"
-    "/ajuda - esta mensagem\n"
-    "/sobre - como o bot funciona por dentro\n\n"
+    "/ajuda - esta mensagem\n\n"
     "E so escrever a pergunta normalmente."
-)
-
-SOBRE = (
-    "*Como eu funciono*\n\n"
-    "Arquitetura RAG (Retrieval-Augmented Generation):\n\n"
-    "1. Sua pergunta e classificada por um modelo rapido\n"
-    "2. Busca hibrida no Postgres: vetorial (pgvector) + lexical (tsvector), "
-    "fundidas por Reciprocal Rank Fusion\n"
-    "3. Se nenhum trecho passa do limiar de confianca, eu admito que nao sei "
-    "em vez de inventar\n"
-    "4. A resposta e gerada pelo Llama 3.3 70B via Groq, restrita aos trechos "
-    "recuperados\n"
-    "5. Um segundo modelo julga a resposta e as notas vao para um dashboard\n\n"
-    "Nao guardo seu ID do Telegram: ele e hasheado antes de ir para o banco.\n\n"
-    "Meu nome e uma homenagem a Henri Nestle, fundador da marca -- nao sou um "
-    "canal oficial da Nestle.\n\n"
-    "Codigo aberto -- feito por um candidato, para candidatos."
 )
 
 
@@ -101,10 +83,6 @@ async def cmd_start(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> None:
 
 async def cmd_ajuda(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> None:
     await update.message.reply_text(AJUDA, parse_mode=ParseMode.MARKDOWN)
-
-
-async def cmd_sobre(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> None:
-    await update.message.reply_text(SOBRE, parse_mode=ParseMode.MARKDOWN)
 
 
 async def tratar_nao_texto(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> None:
@@ -198,7 +176,6 @@ def main() -> None:
 
     app.add_handler(CommandHandler("start", cmd_start))
     app.add_handler(CommandHandler("ajuda", cmd_ajuda))
-    app.add_handler(CommandHandler("sobre", cmd_sobre))
     app.add_handler(CallbackQueryHandler(tratar_feedback, pattern=r"^fb:"))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, tratar_mensagem))
     app.add_handler(MessageHandler(~filters.TEXT & ~filters.COMMAND, tratar_nao_texto))

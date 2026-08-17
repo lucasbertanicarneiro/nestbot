@@ -35,7 +35,7 @@ nos documentos, e o dashboard existe para expor isso.
                        pergunta (Telegram)
                               │
                     ┌─────────▼─────────┐
-                    │  Roteador (LLM    │   Llama 3.1 8B — rápido e barato
+                    │  Roteador (LLM    │   modelo rápido/barato (configurável)
                     │  rápido)          │   classifica categoria + escopo
                     └─────────┬─────────┘
                               │

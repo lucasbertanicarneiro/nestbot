@@ -36,6 +36,7 @@ def _chamar(
     max_tokens: int,
     json_mode: bool = False,
     reasoning_format: str | None = None,
+    reasoning_effort: str | None = None,
 ) -> RespostaLLM:
     inicio = time.perf_counter()
     kwargs: dict[str, Any] = {
@@ -46,10 +47,15 @@ def _chamar(
     }
     if json_mode:
         kwargs["response_format"] = {"type": "json_object"}
-    if reasoning_format:
-        # Parametro novo, ainda nao tipado no SDK instalado (groq==0.13.1) --
+    if reasoning_format or reasoning_effort:
+        # Parametros novos, ainda nao tipados no SDK instalado (groq==0.13.1) --
         # extra_body repassa direto pro corpo da requisicao HTTP.
-        kwargs["extra_body"] = {"reasoning_format": reasoning_format}
+        extra_body: dict[str, Any] = {}
+        if reasoning_format:
+            extra_body["reasoning_format"] = reasoning_format
+        if reasoning_effort:
+            extra_body["reasoning_effort"] = reasoning_effort
+        kwargs["extra_body"] = extra_body
 
     ultima_excecao: Exception | None = None
     for tentativa in range(MAX_TENTATIVAS):
@@ -114,6 +120,15 @@ def gerar_json(
         temperatura=temperatura,
         max_tokens=max_tokens,
         json_mode=True,
+        # modelo_rapido (gpt-oss) e "thinking". reasoning_format="hidden" so
+        # tira o raciocinio da resposta, mas ele ainda consome max_tokens
+        # internamente -- em tarefa de classificacao simples isso as vezes
+        # estourava o budget inteiro e nao sobrava nada pro JSON de saida
+        # (resposta vazia, falha a validacao do response_format).
+        # reasoning_effort="low" mantem o raciocinio curto o bastante pra
+        # sempre sobrar espaco.
+        reasoning_format="hidden",
+        reasoning_effort="low",
     )
     return _parsear_json_llm(resposta.texto)
 

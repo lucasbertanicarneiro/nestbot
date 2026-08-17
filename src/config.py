@@ -43,7 +43,7 @@ class Config:
     )
     # Modelo rapido/barato: classifica intencao e faz o julgamento automatico.
     modelo_rapido: str = field(
-        default_factory=lambda: _env("GROQ_MODELO_RAPIDO", "llama-3.1-8b-instant")
+        default_factory=lambda: _env("GROQ_MODELO_RAPIDO", "openai/gpt-oss-20b")
     )
     # Modelo com visao: transcreve print/imagem no importador (src/import_web.py).
     modelo_visao: str = field(
