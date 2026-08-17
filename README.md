@@ -12,6 +12,19 @@ recuperação. O nome é uma homenagem a Henri Nestlé, fundador da marca.
 
 ---
 
+## Em ação
+
+Resposta sourced, com selo de confiança da recuperação:
+
+<img src="docs/screenshots/resposta-com-fontes.png" alt="Henri respondendo com fontes citadas e selo de alta confiança" width="500">
+
+E o outro lado da moeda — quando o contexto não cobre a pergunta, o bot admite
+em vez de inventar (mesmo quando o termo aparece na resposta anterior):
+
+<img src="docs/screenshots/nao-inventa.png" alt="Henri admitindo que não tem a informação no contexto, em vez de inventar" width="500">
+
+---
+
 ## O problema
 
 Quem se inscreve num programa de trainee tem as mesmas dúvidas repetidas — prazo,
