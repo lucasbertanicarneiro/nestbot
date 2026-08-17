@@ -131,57 +131,89 @@ def _layout(titulo_pagina: str, corpo: str) -> HTMLResponse:
 <title>{_esc(titulo_pagina)} - Importador Henri</title>
 <style>
   :root {{
-    --vinho: #7a1030;
-    --vinho-escuro: #56091f;
-    --creme: #faf6f0;
-    --tinta: #2b2420;
-    --tinta-suave: #6b6259;
-    --borda: #e4dcd0;
+    --azul: #1a4fd6;
+    --azul-claro: #6fa2ff;
+    --roxo: #9a6bf0;
+    --tinta: #1c2333;
+    --tinta-suave: #45506e;
+    --vidro: rgba(255,255,255,.14);
+    --vidro-forte: rgba(255,255,255,.26);
+    --vidro-borda: rgba(255,255,255,.4);
   }}
   * {{ box-sizing: border-box; }}
-  body {{ font-family: system-ui, sans-serif; max-width: 820px; margin: 0 auto;
-         padding: 0 1rem 3rem; color: var(--tinta); line-height: 1.5; background: var(--creme); }}
-  header.topo {{ border-bottom: 3px solid var(--vinho); padding: 1.75rem 0 1rem;
-    margin-bottom: 1.75rem; }}
-  header.topo .marca {{ font-size: .78rem; font-weight: 700; letter-spacing: .12em;
-    text-transform: uppercase; color: var(--vinho); }}
-  header.topo h1 {{ font-size: 1.4rem; margin: .2rem 0 0; color: var(--tinta); }}
-  .cartao {{ background: #fff; border: 1px solid var(--borda); border-radius: 10px;
-    padding: 1.5rem 1.75rem; box-shadow: 0 1px 3px rgba(43,36,32,.06); }}
-  label {{ display: block; margin-top: 1rem; font-weight: 600; }}
-  input[type=text], input[type=url], select, textarea {{
-    width: 100%; padding: .55rem .6rem; font: inherit; box-sizing: border-box;
-    border: 1px solid var(--borda); border-radius: 6px; margin-top: .3rem; background: var(--creme);
+  body {{
+    font-family: system-ui, sans-serif; margin: 0; color: #fff; line-height: 1.5;
+    background:
+      radial-gradient(circle at 1px 1px, rgba(255,255,255,.16) 1px, transparent 0) 0 0/22px 22px,
+      linear-gradient(135deg, #123fb8 0%, #3f74e6 38%, #7452e2 72%, #9b5fe8 100%);
+    background-attachment: fixed;
+    min-height: 100vh;
   }}
+  .pagina {{ max-width: 860px; margin: 0 auto; padding: 2.5rem 1.25rem 3.5rem; }}
+  header.topo {{ padding: 0 .25rem 2rem; }}
+  header.topo .cracha {{
+    display: inline-block; font-size: .72rem; font-weight: 700; letter-spacing: .1em;
+    text-transform: uppercase; padding: .4rem .9rem; border-radius: 999px;
+    background: var(--vidro); border: 1px solid var(--vidro-borda);
+    backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+  }}
+  header.topo h1 {{ font-size: 2rem; margin: .8rem 0 .3rem; color: #fff; }}
+  header.topo p {{ color: rgba(255,255,255,.82); margin: 0; }}
+  .cartao {{
+    background: rgba(255,255,255,.14); border: 1px solid var(--vidro-borda); border-radius: 22px;
+    padding: 1.75rem 2rem 2rem; box-shadow: 0 20px 45px rgba(10,20,55,.35);
+    backdrop-filter: blur(22px) saturate(160%); -webkit-backdrop-filter: blur(22px) saturate(160%);
+    color: #fff;
+  }}
+  .cartao p {{ color: rgba(255,255,255,.85); }}
+  .cartao code {{ background: var(--vidro); padding: .1rem .4rem; border-radius: 5px; }}
+  label {{ display: block; margin-top: 1rem; font-weight: 600; color: #fff; }}
+  input[type=text], input[type=url], select, textarea {{
+    width: 100%; padding: .6rem .7rem; font: inherit; box-sizing: border-box;
+    border: 1px solid var(--vidro-borda); border-radius: 10px; margin-top: .35rem;
+    background: var(--vidro); color: #fff;
+    backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+  }}
+  input::placeholder, textarea::placeholder {{ color: rgba(255,255,255,.55); }}
+  select option {{ color: var(--tinta); }}
   input:focus, select:focus, textarea:focus {{
-    outline: none; border-color: var(--vinho); background: #fff;
+    outline: none; border-color: #fff; background: var(--vidro-forte);
+    box-shadow: 0 0 0 3px rgba(255,255,255,.18);
   }}
   textarea {{ min-height: 320px; font-family: ui-monospace, monospace; font-size: .9rem; }}
-  button {{ margin-top: 1.25rem; margin-right: .5rem; padding: .6rem 1.3rem; font: inherit;
-    font-weight: 600; border-radius: 6px; border: 1px solid var(--vinho); background: var(--vinho);
-    color: #fff; cursor: pointer; }}
-  button:hover {{ background: var(--vinho-escuro); border-color: var(--vinho-escuro); }}
-  button.secundario {{ background: transparent; color: var(--vinho); }}
-  button.secundario:hover {{ background: rgba(122,16,48,.08); }}
-  a {{ color: var(--vinho); }}
-  .aviso {{ background: #fdf1de; border: 1px solid #f0d9a8; padding: .75rem;
-    border-radius: 6px; margin-top: 1rem; }}
-  .erro {{ background: #fbe4e4; border: 1px solid #eab3b3; padding: .75rem;
-    border-radius: 6px; margin-top: 1rem; }}
-  pre {{ background: var(--creme); border: 1px solid var(--borda); padding: .75rem;
-    border-radius: 6px; overflow-x: auto; }}
-  .campo-arquivo {{ border: 2px dashed var(--vinho); border-radius: 8px; padding: 2rem;
-    text-align: center; margin-top: .5rem; background: var(--creme); }}
+  button {{
+    margin-top: 1.25rem; margin-right: .5rem; padding: .65rem 1.5rem; font: inherit;
+    font-weight: 700; border-radius: 999px; border: 1px solid rgba(255,255,255,.6);
+    background: rgba(255,255,255,.92); color: var(--azul); cursor: pointer;
+    backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+  }}
+  button:hover {{ background: #fff; }}
+  button.secundario {{
+    background: var(--vidro); color: #fff; border: 1px solid var(--vidro-borda);
+  }}
+  button.secundario:hover {{ background: var(--vidro-forte); }}
+  a {{ color: #fff; text-decoration-color: rgba(255,255,255,.5); }}
+  .aviso {{ background: rgba(255,214,140,.18); border: 1px solid rgba(255,214,140,.5); padding: .75rem;
+    border-radius: 12px; margin-top: 1rem; backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }}
+  .erro {{ background: rgba(255,150,150,.18); border: 1px solid rgba(255,150,150,.5); padding: .75rem;
+    border-radius: 12px; margin-top: 1rem; backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }}
+  pre {{ background: var(--vidro); border: 1px solid var(--vidro-borda); padding: .75rem;
+    border-radius: 12px; overflow-x: auto; color: #fff; }}
+  .campo-arquivo {{ border: 2px dashed rgba(255,255,255,.55); border-radius: 16px; padding: 2rem;
+    text-align: center; margin-top: .5rem; background: var(--vidro); }}
   p {{ color: var(--tinta-suave); }}
 </style>
 </head>
 <body>
+<div class="pagina">
 <header class="topo">
-  <div class="marca">Henri &middot; Programa de Trainee</div>
-  <h1>Importador de conhecimento</h1>
+  <span class="cracha">Henri &middot; Programa de Trainee</span>
+  <h1>&#8599; Importador de conhecimento</h1>
+  <p>Projeto pessoal, nao-oficial &mdash; sem vinculo com a Nestle.</p>
 </header>
 <div class="cartao">
 {corpo}
+</div>
 </div>
 </body>
 </html>"""
