@@ -52,9 +52,19 @@ BOAS_VINDAS = (
 AJUDA = (
     "*Comandos*\n"
     "/start - apresentacao\n"
-    "/ajuda - esta mensagem\n\n"
-    "E so escrever a pergunta normalmente."
+    "/ajuda - esta mensagem, com sugestoes de pergunta\n\n"
+    "E so escrever a pergunta normalmente, ou tocar numa das sugestoes "
+    "abaixo pra ver como eu respondo:"
 )
+
+# (rotulo do botao, pergunta enviada ao pipeline quando tocado)
+SUGESTOES: list[tuple[str, str]] = [
+    ("🗓️ Etapas do processo", "Quais sao as etapas do processo seletivo?"),
+    ("📋 Requisitos", "Quais sao os requisitos para participar?"),
+    ("💰 Beneficios", "Quais sao os beneficios oferecidos aos trainees?"),
+    ("📍 Mudanca de cidade", "Como funciona a mudanca de cidade durante o programa?"),
+    ("📅 Prazos de inscricao", "Ate quando posso me inscrever?"),
+]
 
 
 def _botoes_feedback(interacao_id: int) -> InlineKeyboardMarkup:
@@ -62,6 +72,13 @@ def _botoes_feedback(interacao_id: int) -> InlineKeyboardMarkup:
         InlineKeyboardButton("👍 Ajudou", callback_data=f"fb:1:{interacao_id}"),
         InlineKeyboardButton("👎 Nao ajudou", callback_data=f"fb:0:{interacao_id}"),
     ]])
+
+
+def _teclado_sugestoes() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup([
+        [InlineKeyboardButton(rotulo, callback_data=f"sug:{i}")]
+        for i, (rotulo, _) in enumerate(SUGESTOES)
+    ])
 
 
 def _formatar_rodape(resultado: rag.ResultadoRAG) -> str:
@@ -82,7 +99,9 @@ async def cmd_start(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> None:
 
 
 async def cmd_ajuda(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> None:
-    await update.message.reply_text(AJUDA, parse_mode=ParseMode.MARKDOWN)
+    await update.message.reply_text(
+        AJUDA, parse_mode=ParseMode.MARKDOWN, reply_markup=_teclado_sugestoes()
+    )
 
 
 async def tratar_nao_texto(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> None:
@@ -131,11 +150,22 @@ async def tratar_mensagem(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> Non
         if houve_pii
         else ""
     )
-    texto = (resultado.resposta + _formatar_rodape(resultado) + aviso_pii)[:LIMITE_TELEGRAM]
-    teclado = _botoes_feedback(resultado.interacao_id) if resultado.rota == "rag" else None
+    await _enviar_resposta(ctx.bot, update.effective_chat.id, resultado, sufixo=aviso_pii)
 
+    if resultado.rota == "rag" and not resultado.sem_contexto:
+        evaluation.avaliar_em_background(
+            resultado.interacao_id, pergunta, resultado.resposta, resultado.chunks
+        )
+
+
+async def _enviar_resposta(
+    bot, chat_id: int, resultado: rag.ResultadoRAG, sufixo: str = ""
+) -> None:
+    texto = (resultado.resposta + _formatar_rodape(resultado) + sufixo)[:LIMITE_TELEGRAM]
+    teclado = _botoes_feedback(resultado.interacao_id) if resultado.rota == "rag" else None
     try:
-        await update.message.reply_text(
+        await bot.send_message(
+            chat_id,
             texto,
             parse_mode=ParseMode.MARKDOWN,
             reply_markup=teclado,
@@ -145,9 +175,40 @@ async def tratar_mensagem(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> Non
         # Markdown malformado (ex: caractere especial vindo de um trecho da
         # base) nao pode deixar o usuario sem resposta nenhuma.
         log.warning("Falha ao parsear Markdown na resposta; reenviando sem formatacao.")
-        await update.message.reply_text(
-            texto, reply_markup=teclado, disable_web_page_preview=True,
+        await bot.send_message(
+            chat_id, texto, reply_markup=teclado, disable_web_page_preview=True,
         )
+
+
+async def tratar_sugestao(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> None:
+    """Botao de sugestao tocado em /ajuda -- roda o mesmo pipeline de uma
+    pergunta normal, so que com texto pre-definido (sem PII possivel, entao
+    pula a redacao)."""
+    query = update.callback_query
+    await query.answer()
+
+    try:
+        pergunta = SUGESTOES[int(query.data.split(":")[1])][1]
+    except (IndexError, ValueError):
+        log.warning("callback_data de sugestao invalido: %s", query.data)
+        return
+
+    usuario_hash = db.hashear_usuario(update.effective_user.id)
+    nome = update.effective_user.first_name
+    chat_id = update.effective_chat.id
+    await ctx.bot.send_chat_action(chat_id, ChatAction.TYPING)
+
+    try:
+        resultado = await asyncio.to_thread(rag.responder, pergunta, usuario_hash, nome)
+    except Exception:
+        log.exception("Falha nao tratada no pipeline RAG (sugestao).")
+        await ctx.bot.send_message(
+            chat_id, "Tive um problema tecnico agora. Pode tentar de novo em instantes?"
+        )
+        return
+
+    await ctx.bot.send_message(chat_id, f"❓ *{pergunta}*", parse_mode=ParseMode.MARKDOWN)
+    await _enviar_resposta(ctx.bot, chat_id, resultado)
 
     if resultado.rota == "rag" and not resultado.sem_contexto:
         evaluation.avaliar_em_background(
@@ -188,6 +249,7 @@ def main() -> None:
     app.add_handler(CommandHandler("start", cmd_start))
     app.add_handler(CommandHandler("ajuda", cmd_ajuda))
     app.add_handler(CallbackQueryHandler(tratar_feedback, pattern=r"^fb:"))
+    app.add_handler(CallbackQueryHandler(tratar_sugestao, pattern=r"^sug:"))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, tratar_mensagem))
     app.add_handler(MessageHandler(~filters.TEXT & ~filters.COMMAND, tratar_nao_texto))
     app.add_error_handler(tratar_erro)
