@@ -81,7 +81,7 @@ nos documentos, e o dashboard existe para expor isso.
                                               │
                                     ┌─────────▼─────────┐
                                     │ Postgres → views  │
-                                    │ → Power BI        │
+                                    │ → Metabase        │
                                     └───────────────────┘
 ```
 
@@ -99,7 +99,7 @@ nos documentos, e o dashboard existe para expor isso.
 | **Avaliação assíncrona** | O julgamento roda em thread separada: mede qualidade sem custar latência para quem está esperando a resposta. |
 | **ID do Telegram hasheado** | Telemetria não precisa de identidade. Hash com sal antes de gravar. |
 | **Redação de PII por regex** | CPF/telefone/e-mail/CEP são removidos da pergunta antes dela chegar ao Groq ou ao banco — protege as duas pontas com uma única checagem na entrada. |
-| **Power BI lê só views** | Desacopla o dashboard do schema. Se as tabelas mudarem, só a view muda e o `.pbix` continua funcionando. |
+| **Metabase lê só views** | Desacopla o dashboard do schema. Se as tabelas mudarem, só a view muda e o dashboard continua funcionando. |
 
 ---
 
@@ -112,7 +112,7 @@ nos documentos, e o dashboard existe para expor isso.
 - **sentence-transformers** — `intfloat/multilingual-e5-small`, 384 dimensões
 - **python-telegram-bot** — polling em dev, webhook em produção
 - **Docker Compose**
-- **Power BI** — camada de visualização
+- **Metabase** — camada de visualização (Docker, mesmo compose)
 
 ---
 
@@ -234,10 +234,11 @@ produção/VPS) e a porta só é publicada em `127.0.0.1`, nunca na rede.
 
 ## Dashboard
 
-🔗 **[Ver o dashboard ao vivo](TODO-LINK-PUBLISH-TO-WEB)** — publicado via Power BI
-Publish to Web, com dado real de uso do bot.
+🔗 **[Ver o dashboard ao vivo](TODO-LINK-PUBLISH-TO-WEB)** — publicado via Metabase
+(link público), com dado real de uso do bot.
 
-Ver [`analytics/README.md`](analytics/README.md) para a montagem no Power BI.
+Ver [`analytics/README.md`](analytics/README.md) para a montagem no Metabase
+(`docker compose --profile analytics up -d metabase`).
 
 Quatro páginas:
 1. **Visão geral** — volume, satisfação, latência
@@ -256,7 +257,7 @@ a página de qualidade mostra se melhorou de fato.
 nestbot/
 ├── db/init.sql              # schema: conhecimento + telemetria
 ├── analytics/
-│   ├── views.sql            # camada que o Power BI consome
+│   ├── views.sql            # camada que o Metabase consome
 │   └── README.md            # guia de montagem do dashboard
 ├── tests/                   # testes unitarios (pytest, sem Docker)
 ├── .github/workflows/       # CI: roda os testes a cada push/PR
