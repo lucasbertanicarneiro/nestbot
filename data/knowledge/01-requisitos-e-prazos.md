@@ -16,8 +16,10 @@ de inscricao ate a admissao.
 
 # Quem pode se inscrever
 
-Podem participar pessoas formadas em qualquer curso de graduacao reconhecido
-pelo MEC, nas modalidades bacharelado, licenciatura ou tecnologo.
+O Programa de Trainee e aberto a qualquer pessoa formada, de qualquer area ou
+curso de graduacao -- nao ha exigencia de curso especifico nem de faculdade
+determinada, contanto que o diploma seja reconhecido pelo MEC (bacharelado,
+licenciatura ou tecnologo).
 
 A formacao precisa ter sido concluida entre dezembro de 2022 e dezembro de 2026.
 Pessoas cursando o ultimo semestre tambem podem se candidatar.
