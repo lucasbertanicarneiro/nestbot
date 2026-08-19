@@ -234,8 +234,13 @@ produção/VPS) e a porta só é publicada em `127.0.0.1`, nunca na rede.
 
 ## Dashboard
 
-🔗 **[Ver o dashboard ao vivo](TODO-LINK-PUBLISH-TO-WEB)** — publicado via Metabase
-(link público), com dado real de uso do bot.
+📊 Dashboard com dado real de uso do bot, em 4 páginas — exportado do Metabase
+(sem VPS ainda, o link público fica pra quando o dashboard estiver hospedado):
+
+- [Visão geral](analytics/dashboard/01-visao-geral.pdf)
+- [Qualidade do RAG](analytics/dashboard/02-qualidade-rag.pdf)
+- [Cobertura da base](analytics/dashboard/03-cobertura-base.pdf)
+- [Lacunas](analytics/dashboard/04-lacunas.pdf)
 
 Ver [`analytics/README.md`](analytics/README.md) para a montagem no Metabase
 (`docker compose --profile analytics up -d metabase`).
