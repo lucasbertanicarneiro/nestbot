@@ -98,6 +98,7 @@ nos documentos, e o dashboard existe para expor isso.
 | **Índice HNSW** | Melhor recall/latência que IVFFlat em bases pequenas, e não exige treino prévio do índice. |
 | **Avaliação assíncrona** | O julgamento roda em thread separada: mede qualidade sem custar latência para quem está esperando a resposta. |
 | **ID do Telegram hasheado** | Telemetria não precisa de identidade. Hash com sal antes de gravar. |
+| **Redação de PII por regex** | CPF/telefone/e-mail/CEP são removidos da pergunta antes dela chegar ao Groq ou ao banco — protege as duas pontas com uma única checagem na entrada. |
 | **Power BI lê só views** | Desacopla o dashboard do schema. Se as tabelas mudarem, só a view muda e o `.pbix` continua funcionando. |
 
 ---
@@ -262,6 +263,7 @@ nestbot/
 ├── src/
 │   ├── config.py            # configuração via env
 │   ├── db.py                # pool, telemetria, hash de usuário
+│   ├── privacidade.py       # redação de PII (CPF/telefone/e-mail/CEP)
 │   ├── embeddings.py        # sentence-transformers local
 │   ├── ingest.py            # chunking + indexação
 │   ├── retrieval.py         # busca híbrida + RRF
@@ -311,6 +313,10 @@ nestbot/
 
 - O ID do Telegram é hasheado com sal antes de ir para o banco; não guardamos
   identificador em claro.
-- Perguntas são armazenadas para medir a qualidade do sistema.
+- CPF, telefone, e-mail e CEP na pergunta são redigidos por regex (`src/privacidade.py`)
+  antes de qualquer outra coisa acontecer — não vão para o Groq nem para o
+  banco. O bot avisa quando isso acontece.
+- Perguntas (já sem PII detectável) são armazenadas para medir a qualidade do
+  sistema.
 - Chaves de API ficam em variáveis de ambiente, nunca no código. O `.env` está
   no `.gitignore`.

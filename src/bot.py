@@ -24,7 +24,7 @@ from telegram.ext import (
     filters,
 )
 
-from . import db, evaluation, rag
+from . import db, evaluation, privacidade, rag
 from .config import config
 
 logging.basicConfig(
@@ -100,6 +100,10 @@ async def tratar_mensagem(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> Non
         await update.message.reply_text("Essa pergunta ficou longa demais. Resume um pouco?")
         return
 
+    # Redige CPF/telefone/e-mail/CEP antes de a pergunta tocar o LLM ou o
+    # banco -- protege as duas pontas com uma unica chamada.
+    pergunta, houve_pii = privacidade.redigir_pii(pergunta)
+
     usuario_hash = db.hashear_usuario(update.effective_user.id)
     nome = update.effective_user.first_name
     await ctx.bot.send_chat_action(update.effective_chat.id, ChatAction.TYPING)
@@ -120,7 +124,14 @@ async def tratar_mensagem(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> Non
         )
         return
 
-    texto = (resultado.resposta + _formatar_rodape(resultado))[:LIMITE_TELEGRAM]
+    aviso_pii = (
+        "\n\n🔒 _Removi dados pessoais (CPF, telefone, e-mail ou CEP) da sua "
+        "pergunta antes de processar -- eles nao sao enviados ao modelo nem "
+        "salvos._"
+        if houve_pii
+        else ""
+    )
+    texto = (resultado.resposta + _formatar_rodape(resultado) + aviso_pii)[:LIMITE_TELEGRAM]
     teclado = _botoes_feedback(resultado.interacao_id) if resultado.rota == "rag" else None
 
     try:
