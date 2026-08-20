@@ -133,6 +133,10 @@ nos documentos, e o dashboard existe para expor isso.
 
 Pré-requisitos: Docker e Docker Compose v2.
 
+> **Windows**: o `scripts/setup.sh` é bash — rode via WSL2 (recomendado,
+> integra direto com o Docker Desktop) ou Git Bash. Linux e macOS rodam o
+> script nativamente, sem ajuste.
+
 ```bash
 git clone <url-do-repo> && cd nestbot
 ./scripts/setup.sh          # cria o .env e para, pedindo as chaves
