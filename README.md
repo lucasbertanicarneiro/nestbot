@@ -121,7 +121,9 @@ nos documentos, e o dashboard existe para expor isso.
 - **Groq API** — modelos configuráveis via `.env` (`GROQ_MODELO_GERACAO`,
   `GROQ_MODELO_RAPIDO`); catálogo do Groq muda com frequência
 - **sentence-transformers** — `intfloat/multilingual-e5-small`, 384 dimensões
-- **python-telegram-bot** — polling em dev, webhook em produção
+- **python-telegram-bot** — polling (implementado e é como o bot roda hoje);
+  o código já suporta webhook também, pra quando houver um host com HTTPS
+  público
 - **Docker Compose**
 - **Metabase** — camada de visualização (Docker, mesmo compose)
 
@@ -238,15 +240,16 @@ específico é visual. Existe um checkbox pra forçar esse caminho manualmente
 se a heurística não pegar sozinha.
 
 É uma ferramenta **dev-only**: fica atrás do profile `import` do Compose
-(nunca sobe com um `docker compose up -d` comum, o que subiria em
-produção/VPS) e a porta só é publicada em `127.0.0.1`, nunca na rede.
+(nunca sobe com um `docker compose up -d` comum) e a porta só é publicada
+em `127.0.0.1`, nunca na rede.
 
 ---
 
 ## Dashboard
 
 📊 Dashboard com dado real de uso do bot, em 4 páginas — exportado do Metabase
-(sem VPS ainda, o link público fica pra quando o dashboard estiver hospedado):
+em PDF e versionado aqui, já que o projeto roda local via Docker Compose
+(sem deploy público):
 
 - [Visão geral](analytics/dashboard/01-visao-geral.pdf)
 - [Qualidade do RAG](analytics/dashboard/02-qualidade-rag.pdf)
@@ -274,7 +277,9 @@ nestbot/
 ├── db/init.sql              # schema: conhecimento + telemetria
 ├── analytics/
 │   ├── views.sql            # camada que o Metabase consome
-│   └── README.md            # guia de montagem do dashboard
+│   ├── README.md            # guia de montagem do dashboard
+│   └── dashboard/           # export em PDF, 4 paginas (dado real)
+├── docs/screenshots/        # prints usados neste README
 ├── tests/                   # testes unitarios (pytest, sem Docker)
 ├── .github/workflows/       # CI: roda os testes a cada push/PR
 ├── src/
